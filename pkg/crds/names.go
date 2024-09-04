@@ -5,29 +5,8 @@ import "github.com/rancher/rancher/pkg/features"
 // RequiredCRDs returns a list of CRD to install based on enabled features.
 func RequiredCRDs() []string {
 	requiredCRDS := BasicCRDs()
-	if features.ProvisioningV2.Enabled() {
-		requiredCRDS = append(requiredCRDS, ProvisioningV2CRDs()...)
-		if features.RKE2.Enabled() {
-			requiredCRDS = append(requiredCRDS, RKE2CRDs()...)
-		}
-		if features.EmbeddedClusterAPI.Enabled() {
-			requiredCRDS = append(requiredCRDS, CAPICRDs()...)
-		}
-		if features.Fleet.Enabled() {
-			requiredCRDS = append(requiredCRDS, "managedcharts.management.cattle.io")
-		}
-	}
-	if features.Fleet.Enabled() {
-		requiredCRDS = append(requiredCRDS, FleetCRDs()...)
-	}
-	if features.MCM.Enabled() {
-		requiredCRDS = append(requiredCRDS, MCMCRDs()...)
-	}
 	if features.Auth.Enabled() {
 		requiredCRDS = append(requiredCRDS, AuthCRDs()...)
-	}
-	if features.MonitoringV1.Enabled() {
-		requiredCRDS = append(requiredCRDS, MonitoringV1CRDs()...)
 	}
 	return requiredCRDS
 }

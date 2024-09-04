@@ -26,12 +26,9 @@ import (
 	"github.com/rancher/rancher/pkg/controllers/dashboard/apiservice"
 	"github.com/rancher/rancher/pkg/controllers/dashboardapi"
 	managementauth "github.com/rancher/rancher/pkg/controllers/management/auth"
-	"github.com/rancher/rancher/pkg/controllers/nodedriver"
-	provisioningv2 "github.com/rancher/rancher/pkg/controllers/provisioningv2/cluster"
 	"github.com/rancher/rancher/pkg/crds"
 	dashboardcrds "github.com/rancher/rancher/pkg/crds/dashboard"
 	dashboarddata "github.com/rancher/rancher/pkg/data/dashboard"
-	"github.com/rancher/rancher/pkg/features"
 	mgmntv3 "github.com/rancher/rancher/pkg/generated/norman/management.cattle.io/v3"
 	"github.com/rancher/rancher/pkg/multiclustermanager"
 	"github.com/rancher/rancher/pkg/namespace"
@@ -96,10 +93,6 @@ type Rancher struct {
 }
 
 func New(ctx context.Context, clientConfg clientcmd.ClientConfig, opts *Options) (*Rancher, error) {
-	var (
-		authServer *auth.Server
-	)
-
 	if opts == nil {
 		opts = &Options{}
 	}
@@ -111,11 +104,6 @@ func New(ctx context.Context, clientConfg clientcmd.ClientConfig, opts *Options)
 
 	restConfig, err = setupAndValidationRESTConfig(ctx, restConfig)
 	if err != nil {
-		return nil, err
-	}
-
-	// Run the encryption migration before any controllers run otherwise the fields will be dropped
-	if err := migrateEncryptionConfig(ctx, restConfig); err != nil {
 		return nil, err
 	}
 
@@ -132,31 +120,16 @@ func New(ctx context.Context, clientConfg clientcmd.ClientConfig, opts *Options)
 		if err := setupRancherService(ctx, restConfig, opts.HTTPSListenPort); err != nil {
 			return nil, err
 		}
-		if err := bumpRancherWebhookIfNecessary(ctx, restConfig); err != nil {
-			return nil, err
-		}
 	}
-
-	wranglerContext.MultiClusterManager = newMCM(wranglerContext, opts)
 
 	// Initialize Features as early as possible
 	if err := dashboardcrds.CreateFeatureCRD(ctx, restConfig); err != nil {
 		return nil, err
 	}
 
-	if err := features.MigrateFeatures(wranglerContext.Mgmt.Feature(), wranglerContext.CRD.CustomResourceDefinition(), wranglerContext.Mgmt.Cluster()); err != nil {
-		return nil, fmt.Errorf("migrating features: %w", err)
-	}
-	features.InitializeFeatures(wranglerContext.Mgmt.Feature(), opts.Features)
-
 	podsecuritypolicytemplate.RegisterIndexers(wranglerContext)
 	kontainerdriver.RegisterIndexers(wranglerContext)
 	managementauth.RegisterWranglerIndexers(wranglerContext)
-
-	if features.ProvisioningV2.Enabled() {
-		// ensure indexers are registered for all replicas
-		provisioningv2.RegisterIndexers(wranglerContext)
-	}
 
 	clientSet, err := clientset.NewForConfig(restConfig)
 	if err != nil {
@@ -173,23 +146,9 @@ func New(ctx context.Context, clientConfg clientcmd.ClientConfig, opts *Options)
 		return nil, fmt.Errorf("failed to create CRDs: %w", err)
 	}
 
-	if features.MCM.Enabled() && !features.Fleet.Enabled() {
-		logrus.Info("fleet can't be turned off when MCM is enabled. Turning on fleet feature")
-		if err := features.SetFeature(wranglerContext.Mgmt.Feature(), features.Fleet.Name(), true); err != nil {
-			return nil, err
-		}
-	}
-
-	if features.Auth.Enabled() {
-		authServer, err = auth.NewServer(ctx, restConfig)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		authServer, err = auth.NewAlwaysAdmin()
-		if err != nil {
-			return nil, err
-		}
+	authServer, err := auth.NewServer(ctx, restConfig)
+	if err != nil {
+		return nil, err
 	}
 
 	steveControllers, err := steveserver.NewController(restConfig, &generic.FactoryOptions{SharedControllerFactory: wranglerContext.SharedControllerFactory})
@@ -264,14 +223,6 @@ func (r *Rancher) Start(ctx context.Context) error {
 
 	if err := steveapi.Setup(ctx, r.Steve, r.Wrangler); err != nil {
 		return err
-	}
-
-	if features.MCM.Enabled() {
-		// Registers handlers for all rancher replicas running in the local cluster, but not downstream agents
-		nodedriver.Register(ctx, r.Wrangler)
-		if err := r.Wrangler.MultiClusterManager.Start(ctx); err != nil {
-			return err
-		}
 	}
 
 	r.Wrangler.OnLeader(func(ctx context.Context) error {

@@ -107,25 +107,6 @@ func List(cfg *rest.Config) (_ []crd.CRD, err error) {
 		}),
 	}
 
-	if features.Fleet.Enabled() {
-		result = append(result, crd.CRD{
-			SchemaObject: v3.FleetWorkspace{},
-			NonNamespace: true,
-		})
-		result, err = fleetBootstrap(result, cfg)
-		if err != nil {
-			return nil, err
-		}
-		if features.ProvisioningV2.Enabled() {
-			result = append(result, crd.CRD{
-				SchemaObject: v3.ManagedChart{},
-			}.WithStatus())
-		}
-	}
-
-	if features.ProvisioningV2.Enabled() {
-		result = append(result, provisioningv2.List()...)
-	}
 	for i := len(result) - 1; i >= 0; i-- {
 		if crds.MigratedResources[result[i].Name()] {
 			// remove the migrated resource from the result slice so we do not install a dynamic definition
