@@ -167,17 +167,17 @@ func New(ctx context.Context, clientConfg clientcmd.ClientConfig, opts *Options)
 		return nil, err
 	}
 
-	clusterProxy, err := proxy.NewProxyMiddleware(wranglerContext.K8s.AuthorizationV1(),
-		wranglerContext.TunnelServer.Dialer,
-		wranglerContext.Mgmt.Cluster().Cache(),
-		localClusterEnabled(opts),
-		steve,
-	)
-	if err != nil {
-		return nil, err
-	}
+	// clusterProxy, err := proxy.NewProxyMiddleware(wranglerContext.K8s.AuthorizationV1(),
+	// 	wranglerContext.TunnelServer.Dialer,
+	// 	wranglerContext.Mgmt.Cluster().Cache(),
+	// 	localClusterEnabled(opts),
+	// 	steve,
+	// )
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	additionalAPIPreMCM := steveapi.AdditionalAPIsPreMCM(wranglerContext)
+	// additionalAPIPreMCM := steveapi.AdditionalAPIsPreMCM(wranglerContext)
 	additionalAPI, err := steveapi.AdditionalAPIs(ctx, wranglerContext, steve)
 	if err != nil {
 		return nil, err
@@ -199,10 +199,10 @@ func New(ctx context.Context, clientConfg clientcmd.ClientConfig, opts *Options)
 			responsewriter.NoCache,
 			websocket.NewWebsocketHandler,
 			proxy.RewriteLocalCluster,
-			clusterProxy,
+			// clusterProxy,
 			aggregationMiddleware,
-			additionalAPIPreMCM,
-			wranglerContext.MultiClusterManager.Middleware,
+			// additionalAPIPreMCM,
+			// wranglerContext.MultiClusterManager.Middleware,
 			authServer.Management,
 			additionalAPI,
 			requests.NewRequireAuthenticatedFilter("/v1/", "/v1/management.cattle.io.setting"),
