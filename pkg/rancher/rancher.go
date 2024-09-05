@@ -23,7 +23,6 @@ import (
 	"github.com/rancher/rancher/pkg/auth/audit"
 	"github.com/rancher/rancher/pkg/auth/requests"
 	"github.com/rancher/rancher/pkg/controllers/dashboard/apiservice"
-	"github.com/rancher/rancher/pkg/controllers/dashboardapi"
 	managementauth "github.com/rancher/rancher/pkg/controllers/management/auth"
 	"github.com/rancher/rancher/pkg/crds"
 	dashboardcrds "github.com/rancher/rancher/pkg/crds/dashboard"
@@ -216,9 +215,9 @@ func New(ctx context.Context, clientConfg clientcmd.ClientConfig, opts *Options)
 }
 
 func (r *Rancher) Start(ctx context.Context) error {
-	if err := dashboardapi.Register(ctx, r.Wrangler); err != nil {
-		return err
-	}
+	// if err := dashboardapi.Register(ctx, r.Wrangler); err != nil {
+	// 	return err
+	// }
 
 	if err := steveapi.Setup(ctx, r.Steve, r.Wrangler); err != nil {
 		return err
