@@ -22,7 +22,6 @@ import (
 	"github.com/rancher/rancher/pkg/auth"
 	"github.com/rancher/rancher/pkg/auth/audit"
 	"github.com/rancher/rancher/pkg/auth/requests"
-	"github.com/rancher/rancher/pkg/controllers/dashboard"
 	"github.com/rancher/rancher/pkg/controllers/dashboard/apiservice"
 	"github.com/rancher/rancher/pkg/controllers/dashboardapi"
 	managementauth "github.com/rancher/rancher/pkg/controllers/management/auth"
@@ -225,18 +224,18 @@ func (r *Rancher) Start(ctx context.Context) error {
 		return err
 	}
 
-	r.Wrangler.OnLeader(func(ctx context.Context) error {
-		if err := dashboarddata.Add(ctx, r.Wrangler, localClusterEnabled(r.opts), r.opts.AddLocal == "false", r.opts.Embedded); err != nil {
-			return err
-		}
-		if err := r.Wrangler.StartWithTransaction(ctx, func(ctx context.Context) error {
-			return dashboard.Register(ctx, r.Wrangler, r.opts.Embedded, r.opts.ClusterRegistry)
-		}); err != nil {
-			return err
-		}
+	// r.Wrangler.OnLeader(func(ctx context.Context) error {
+	// 	if err := dashboarddata.Add(ctx, r.Wrangler, localClusterEnabled(r.opts), r.opts.AddLocal == "false", r.opts.Embedded); err != nil {
+	// 		return err
+	// 	}
+	// 	if err := r.Wrangler.StartWithTransaction(ctx, func(ctx context.Context) error {
+	// 		return dashboard.Register(ctx, r.Wrangler, r.opts.Embedded, r.opts.ClusterRegistry)
+	// 	}); err != nil {
+	// 		return err
+	// 	}
 
-		return runMigrations(r.Wrangler)
-	})
+	// 	return runMigrations(r.Wrangler)
+	// })
 
 	if err := r.authServer.Start(ctx, false); err != nil {
 		return err
